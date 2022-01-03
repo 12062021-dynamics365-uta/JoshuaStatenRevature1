@@ -4,10 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Data.SqlClient;
+using Domain;
 
 namespace Storage
 {
-    class DatabaseAccess
+    public class DatabaseAccess : IDBAccess
     {
         string db = "Data source =LAPTOP-NI3BRHG2\\SQLEXPRESS; initial Catalog = ToySanta; integrated security = true";
         public SqlConnection connection;
@@ -34,7 +35,7 @@ namespace Storage
 
         public void insertOrderHistory(int Customerid, int toyhID, decimal Price)
         {
-            string query = $"INSERT INTO OldOrder(Customerid, toyhID, Price) VALUES ('{Customerid}' , '{toyHID}' , '{Price}');";
+            string query = $"INSERT INTO OldOrder(Customerid, toyhID, Price) VALUES ('{Customerid}' , '{toyhID}' , '{Price}');";
             DBAccess();
             SqlCommand cmd = new SqlCommand(query, connection);
             SqlDataReader dr = cmd.ExecuteReader();
@@ -46,7 +47,7 @@ namespace Storage
         public void checkOrderHistory(int Customerid)
         {
             string query = $"SELECT DISTINCT Customerid, toyhID, Price FROM PastOrders3 WHERE CustomerID = {Customerid};";
-            List<CartItems> itemsInCart = new List<CartItems>();
+            List<Space> spaces = new List<Space>();
 
             DBAccess();
             SqlCommand command = new SqlCommand(query, this.connection);
@@ -75,6 +76,15 @@ namespace Storage
             dr.Close();
             return toyName;
         }
+        public void addToy(int toyhID, string tname, decimal Price, string Script)
+        {
+            string query = $"INSERT INTO Toyinvo (toyhID, tname, Price, Script) VALUES ('{toyhID}' , '{tname}' , '{Price}' , '{Script}');";
+            DBAccess();
+            SqlCommand cmd = new SqlCommand(query, connection);
+            SqlDataReader dr = cmd.ExecuteReader();
+            dr.Close();
+        }
+
         public int GetToyPrice(int toyhID)
         {
             int cost = 0;
@@ -136,6 +146,34 @@ namespace Storage
 
 
         }
+        public int getNextCustomerID()
+        {
+            int Customerid = -1;
+
+            string query = "SELECT MAX(Customerid) + 1 as MaxID FROM Customer;";
+
+            DBAccess();
+            using (connection)
+            {
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    using (SqlDataReader dataRead = command.ExecuteReader())
+                    {
+                        while (dataRead.Read())
+                        {
+                            for (int i = 0; i < dataRead.FieldCount; i++)
+                            {
+                                Customerid = int.Parse(dataRead["MaxID"].ToString());
+                            }
+                        }
+                        dataRead.Close();
+                    }
+                }
+            }
+            return Customerid;
+        }
+
+
         public void addCustomer(int Customerid, string fname, string lname, string uname)
         {
             SqlCommand command;
@@ -212,22 +250,22 @@ namespace Storage
                            "ON p.toyhID = Inventory.ProductID " +
                            "WHERE Inventory.Cityid = " + Cityid + " ;";
 
-            List<Toys> toys = new List<Toys>();
+            List<Toys> toy = new List<Toys>();
             DBAccess();
             using (SqlCommand command = new SqlCommand(query, this.connection))
             {
                 SqlDataReader dr = command.ExecuteReader();
-                toys = this.mapper.EntityToProducts(dr);
+                toy = this.mapper.ToyMap(dr);
                 dr.Close();
             }
-            return toys;
+            return toy;
 
         }
         public int newCart(int Cityid, int Customerid, decimal CartTotal)
         {
             int Cartid = r.Next(1, 3000);
             string query = "INSERT INTO Cart(Cartid, Cityid, Customerid, CartTotal) values('" + Cartid + "', '" + Cityid + "', '" + Customerid + "', '" + CartTotal + "')";
-            List<Carts> cart = new List<Carts>();
+            List<Cart> cart = new List<Cart>();
             DBAccess();
             using (SqlCommand command = new SqlCommand(query, this.connection))
             {
@@ -244,11 +282,45 @@ namespace Storage
                 dr.Close();
             }
 
+            string query2 = "SELECT Cartid FROM Cart;";
+            using (SqlCommand command = new SqlCommand(query2, this.connection))
+            {
+                SqlDataReader dr = command.ExecuteReader();
+                while (dr.Read())
+                {
+                    Cartid = (Convert.ToInt32(dr[0].ToString()));
+                }
+                dr.Close();
+            }
+            return Cartid;
+        }
+        public void addToCart(int CSpaceid, int Lineid, int Cartid, int toyhID)
+        {
+
+            string query = $"INSERT INTO CartSpace(CSpaceid, Lineid, Cartid, toyhID) values('{CSpaceid} ',' {Lineid} ',' {Cartid} ', ' {toyhID} ');";
+            List<Space> spaces = new List<Space>();
+            DBAccess();
+            SqlCommand command = new SqlCommand(query, this.connection);
+            //{
+            SqlDataReader dr = command.ExecuteReader();
+            while (dr.Read())
+            {
+                for (int i = 0; i < dr.FieldCount; i++)
+                {
+                    Console.WriteLine(dr.GetValue(i));
+                };
+
+            }
+            spaces = mapper.CartSpaceMap(dr);
+
+            dr.Close();
+
+            //}
         }
         public decimal getorder(int Orderid, int Cityid, int Customerid, decimal Total)
         {
             string query = $"INSERT INTO CustOrder (Orderid, Cityid, Customerid, Total) values('{Orderid}','{Cityid}', '{Customerid}', '{Total}');";
-            List<Orders> order = new List<Orders>();
+            List<Order> order = new List<Order>();
             DBAccess();
             SqlCommand command = new SqlCommand(query, this.connection);
             SqlDataReader dr = command.ExecuteReader();
@@ -266,7 +338,7 @@ namespace Storage
         public decimal getorderitem(int Cartid, int Cityid, int Customerid, decimal CartTotal)
         {
             string query1 = "SELECT CartTotal FROM Cart WHERE CartID = " + Cartid + ";";
-            List<Orders> order = new List<Orders>();
+            List<Order> order = new List<Order>();
             DBAccess();
             SqlCommand command = new SqlCommand(query1, this.connection);
             SqlDataReader dr = command.ExecuteReader();
@@ -288,6 +360,60 @@ namespace Storage
             }
             return CartTotal;
         }
+        public void DeleteFromCart(int Cartid, int toyhID)
+        {
 
+            string query = $"DELETE FROM CartSpace WHERE toyhID = " + toyhID + " AND " + "Cartid = " + Cartid + " ;";
+            List<Space> spaces = new List<Space>();
+            DBAccess();
+            SqlCommand command = new SqlCommand(query, connection);
+            SqlDataReader dr = command.ExecuteReader();
+            while (dr.Read())
+            {
+                for (int i = 0; i < dr.FieldCount; i++)
+                {
+                    Console.WriteLine(dr.GetValue(i));
+                };
+
+            }
+            spaces = this.mapper.CartSpaceMap(dr);
+
+            dr.Close();
+        }
+        public void DeleteCartItems(int Cartid)
+        {
+            string query = "DELETE CartSpace WHERE Cartid = " + Cartid + " ;";
+            DBAccess();
+            using (SqlCommand command = new SqlCommand(query, this.connection))
+            {
+                SqlDataReader dataReader = command.ExecuteReader();
+
+                dataReader.Close();
+            }
+        }
+        public void ViewCart(int Cartid)
+        {
+            string query = "SELECT Lineid, tname " +
+                           "FROM CartSpace " +
+                           "LEFT OUTER JOIN Toyinvo " +
+                           "ON Toyinvo.toyhID = CartSpace.toyhID " +
+                           "WHERE Cartid = " + Cartid +
+                           "ORDER BY Lineid ;";
+            List<Space> spaces = new List<Space>();
+
+            DBAccess();
+            SqlCommand command = new SqlCommand(query, this.connection);
+
+            SqlDataReader dr = command.ExecuteReader();
+
+            while (dr.Read())
+            {
+                for (int i = 0; i < dr.FieldCount; i++)
+                {
+                    Console.WriteLine(dr.GetValue(i));
+                };
+
+            }
+        }
     }
 }
