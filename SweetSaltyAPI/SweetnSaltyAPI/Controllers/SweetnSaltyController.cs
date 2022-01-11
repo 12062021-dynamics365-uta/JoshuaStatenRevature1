@@ -25,10 +25,10 @@ namespace SweetnSaltyAPI.Controllers
         [Route("postaflavor/{flavor}")]
         public async Task<ActionResult<Flavor>> PostFlavor(string flavor)
         {
-            Flavor f = await _businessClass.PostFlavor(flavor);
-            if (f != null)
+            Flavor flav = await _businessClass.PostFlavor(flavor);
+            if (flav != null)
             {
-                return Created($"http://5001/sweetnsalty/postaflavor/{f.flavorId}", f);
+                return Created($"http://5001/sweetnsalty/postaflavor/{flav.flavorId}", flav);
             }
             else
             {
@@ -87,10 +87,10 @@ namespace SweetnSaltyAPI.Controllers
         [Route("getlistofflavors")]
         public async Task<ActionResult<List<Flavor>>> GetAllFlavors()
         {
-            List<Flavor> f = await _businessClass.GetAllFlavors();
-            if (f.Count != 0)
+            List<Flavor> flav = await _businessClass.GetAllFlavors();
+            if (flav.Count != 0)
             {
-                return Ok(f);
+                return Ok(flav);
             }
             else
             {
