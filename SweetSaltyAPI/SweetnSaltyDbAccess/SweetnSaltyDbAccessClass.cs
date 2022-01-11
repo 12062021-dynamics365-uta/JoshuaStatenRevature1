@@ -20,11 +20,12 @@ namespace SweetnSaltyDbAccess
 
         public async Task<SqlDataReader> PostFlavor(string flavor)
         {
-            string sqlQuery = "INSERT INTO Flavors VALUES (@Flavor);";
+            string sqlQuery = $"INSERT INTO Flavors (FlavorName) VALUES ('{flavor}');";
+            
 
             using (SqlCommand cmd = new SqlCommand(sqlQuery, this._con))
             {
-                cmd.Parameters.AddWithValue("@Flavor", flavor);
+                cmd.Parameters.AddWithValue("@flavor", flavor);
                 try
                 {
                     await cmd.ExecuteNonQueryAsync();
@@ -44,12 +45,12 @@ namespace SweetnSaltyDbAccess
         }
         public async Task<SqlDataReader> PostPerson(string fname, string lname)
         {
-            string sqlQuery = "INSERT INTO People VALUES (@FirstName, @LastName);";
+            string sqlQuery = "INSERT INTO People VALUES (@fname, @lname);";
 
             using (SqlCommand cmd = new SqlCommand(sqlQuery, this._con))
             {
-                cmd.Parameters.AddWithValue("@FirstName", fname);
-                cmd.Parameters.AddWithValue("@LastName", lname);
+                cmd.Parameters.AddWithValue("@fname", fname);
+                cmd.Parameters.AddWithValue("@lname", lname);
                 try
                 {
                     await cmd.ExecuteNonQueryAsync();
@@ -70,13 +71,13 @@ namespace SweetnSaltyDbAccess
 
         public async Task<SqlDataReader> GetPerson(string fname, string lname)
         {
-            string query = "SELECT * FROM People WHERE FirstName = @FirstName AND LastName = @LastName;";
+            string query = "SELECT * FROM People WHERE FirstName = @fname AND LastName = @lname;";
             try
             {
                 using (SqlCommand cmd = new SqlCommand(query, this._con))
                 {
-                    cmd.Parameters.AddWithValue("@FirstName", fname);
-                    cmd.Parameters.AddWithValue("@LastName", lname);
+                    cmd.Parameters.AddWithValue("@fname", fname);
+                    cmd.Parameters.AddWithValue("@lname", lname);
                     SqlDataReader dr = await cmd.ExecuteReaderAsync();
                     return dr;
                 }
